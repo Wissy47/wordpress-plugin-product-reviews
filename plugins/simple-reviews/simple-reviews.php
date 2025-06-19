@@ -12,7 +12,9 @@ if (!defined('ABSPATH')) {
 
 class Simple_Reviews {
     public function __construct() {
-        add_action('init', [$this, 'register_product_review_cpt']);        
+        add_action('init', [$this, 'register_product_review_cpt']); 
+        add_action('rest_api_init', [$this, 'register_rest_routes']);
+        add_shortcode('product_reviews', [$this, 'display_product_reviews']);      
     }
 
  
@@ -40,6 +42,13 @@ class Simple_Reviews {
             'callback' => [$this, 'get_review_history'],
             'permission_callback' => '__return_true',
         ]);
+
+        register_rest_route('mock-api/v1', '/outliers/', [
+            'methods'  => 'GET',
+            'callback' => [$this, 'get_review_outliers'],
+            'permission_callback' => '__return_true',
+        ]);
+
     }
 
     public function analyze_sentiment($request) {
@@ -73,6 +82,33 @@ class Simple_Reviews {
             ];
         }
 
+        return rest_ensure_response($response);
+    }
+
+    // Outlier callback
+    public function get_review_outliers(){
+
+        $reviews = get_posts([
+            'post_type'      => 'product_review',
+            'posts_per_page' => 5,
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+        ]);
+
+        $response = [];
+        $total_score = [];
+        foreach ($reviews as $review) {
+            $score = get_post_meta($review->ID, 'sentiment_score', true);
+            $total_score[] = $score;
+        }
+
+        $average = array_sum($total_score) / 5;
+        foreach ($reviews as $review2) {
+            if (get_post_meta($review->ID, 'sentiment_score', true) > $average){
+                $response[] = ['id' => $review2->ID, 'title'=> $review2->post_title];
+            }
+           
+        }
         return rest_ensure_response($response);
     }
 

@@ -18,7 +18,9 @@ services:
     command: ["/bin/bash", "-c", "/post-init.sh && docker-entrypoint.sh apache2-foreground"]
 
   db:
-    image: mysql:5.7
+     # We use a mariadb image which supports both amd64 & arm64 architecture
+    image: mariadb:10.6.4-focal
+    # image: mysql:5.7
     restart: always
     environment:
       MYSQL_DATABASE: wordpress
